@@ -1,0 +1,6 @@
+@DndMacroMaker_HostAddress = http://localhost:5169
+
+GET {{DndMacroMaker_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
