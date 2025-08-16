@@ -24,8 +24,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/", async context =>
 {
-    context.Response.ContentType = "text/html";
-    await context.Response.SendFileAsync(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "index.html"));
+    context.Response.Redirect("/index.html");
 });
 app.MapFallbackToFile("index.html");
 
