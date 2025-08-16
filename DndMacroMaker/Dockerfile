@@ -19,4 +19,6 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 COPY wwwroot ./wwwroot
 ENV DOTNET_RUNNING_IN_CONTAINER=true
+RUN echo "Zawartoœæ /app:" && ls -l /app
+RUN echo "Zawartoœæ /app/wwwroot:" && ls -l /app/wwwroot
 ENTRYPOINT ["dotnet", "DndMacroMaker.dll"]

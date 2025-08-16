@@ -22,6 +22,7 @@ app.Urls.Add($"http://*:{port}");
 // obs³uga plików statycznych (frontend)
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.MapGet("/", () => "Hello World!");
 app.MapFallbackToFile("index.html");
 
 // API
