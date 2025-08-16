@@ -25,12 +25,5 @@ public class ScraperController : ControllerBase
         var macro = _scraper.GenerateMacro(spell);
         return Ok(macro);
     }
-    [HttpGet]
-    public IActionResult Home()
-    {
-        return PhysicalFile(
-            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"),
-            "text/html"
-        );
-    }
+   
 }
