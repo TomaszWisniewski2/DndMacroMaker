@@ -22,7 +22,11 @@ app.Urls.Add($"http://*:{port}");
 // obs³uga plików statycznych (frontend)
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", async context =>
+{
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "index.html"));
+});
 app.MapFallbackToFile("index.html");
 
 // API
