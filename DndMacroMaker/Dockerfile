@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
-EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:$PORT
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 ARG BUILD_CONFIGURATION=Release
@@ -19,6 +19,4 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 COPY wwwroot ./wwwroot
 ENV DOTNET_RUNNING_IN_CONTAINER=true
-RUN echo "Zawartoœæ /app:" && ls -l /app
-RUN echo "Zawartoœæ /app/wwwroot:" && ls -l /app/wwwroot
 ENTRYPOINT ["dotnet", "DndMacroMaker.dll"]
