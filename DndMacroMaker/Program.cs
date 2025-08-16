@@ -18,7 +18,16 @@ var app = builder.Build();
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Urls.Clear();
 app.Urls.Add($"http://*:{port}");
-
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1"));
+}
 // obs³uga plików statycznych (frontend)
 app.UseDefaultFiles();
 app.UseStaticFiles();
