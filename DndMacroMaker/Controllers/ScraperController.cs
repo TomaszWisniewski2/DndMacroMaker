@@ -12,7 +12,7 @@ public class ScraperController : ControllerBase
         _scraper = scraper;
     }
 
-    [HttpGet("Get")]
+    [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -25,7 +25,7 @@ public class ScraperController : ControllerBase
         var macro = _scraper.GenerateMacro(spell);
         return Ok(macro);
     }
-    [HttpGet("home")]
+    [HttpGet]
     public IActionResult Home()
     {
         return PhysicalFile(
