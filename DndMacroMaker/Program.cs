@@ -1,17 +1,30 @@
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "wwwroot"
+});
 
+// dodaj us³ugê scraper
 builder.Services.AddSingleton<ScraperService>();
 
+// kontrolery + swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseDefaultFiles(); // aby index.html dzia³a³ bez œcie¿ki
+// Railway wymaga nas³uchiwania na $PORT
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Clear();
+app.Urls.Add($"http://*:{port}");
+
+// obs³uga plików statycznych (frontend)
+app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("index.html");
-app.UseRouting();
+
+// API
 app.MapControllers();
 
 app.Run();
