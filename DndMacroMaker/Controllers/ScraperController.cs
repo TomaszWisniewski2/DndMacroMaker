@@ -12,7 +12,7 @@ public class ScraperController : ControllerBase
         _scraper = scraper;
     }
 
-    [HttpGet]
+    [HttpGet("Get")]
     public async Task<IActionResult> Get([FromQuery] string url)
     {
         if (string.IsNullOrWhiteSpace(url))
