@@ -214,7 +214,7 @@ public class ScraperService
         //sb.Append(" {{succeedcheck=Success! She casts her spell!}}");
         //sb.Append(" {{failcheck=She fails :( }}");
 
-        var notes = SanitizeNotes(spell.Description) + " [MMM](http://www.theparkside.net/mmm)";
+        var notes = SanitizeNotes(spell.Description) + " [GMR](https://dndmacromaker-production.up.railway.app/Home)";
         AppendPair(sb, "notes", notes);
 
         return sb.ToString();
