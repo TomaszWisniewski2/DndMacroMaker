@@ -1,0 +1,26 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+
+
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=my-image-name:$(date +%s)
+          docker build . -f Dockerfile -t $IMAGE_TAG
+          echo "Built $IMAGE_TAG"
+
+      - name: Push Docker image
+        run: |
+          IMAGE_TAG=my-image-name:$(date +%s)
+          docker push $IMAGE_TAG
