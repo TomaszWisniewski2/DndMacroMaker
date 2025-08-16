@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Generator Makr Roll20 (D&D 3.5)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: #eee;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffd700;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input, button, textarea {
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        input {
+            background: #333;
+            color: #fff;
+        }
+
+        button {
+            background: #28a745;
+            color: #fff;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background: #218838;
+            }
+
+        textarea {
+            background: #111;
+            color: #0f0;
+            height: 350px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generator Makr Roll20 (D&D 3.5)</h1>
+    <label for="url">Adres zaklęcia z DnDTools:</label>
+    <input type="text" id="url" placeholder="Wklej link, np. https://dndtools.org/spells/players-handbook-ii--80/crown-of-clarity--2940/">
+    <button id="fetchBtn">Generuj Makro</button>
+    <label for="result">Wygenerowane makro:</label>
+    <textarea id="result" readonly></textarea>
+
+    <script>
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const url = document.getElementById('url').value.trim();
+            if (!url) {
+                alert("Podaj link do zaklęcia!");
+                return;
+            }
+
+            try {
+                // tu zmień adres API na właściwy w zależności od backendu
+                const res = await fetch(`/api/scraper?url=${encodeURIComponent(url)}`);
+                if (!res.ok) {
+                    throw new Error("Błąd pobierania makra");
+                }
+                document.getElementById('result').value = await res.text();
+            } catch (err) {
+                console.error(err);
+                alert("Wystąpił błąd: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
