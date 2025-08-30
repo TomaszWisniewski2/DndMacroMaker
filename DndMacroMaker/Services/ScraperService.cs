@@ -41,7 +41,7 @@ public class ScraperService
                 Rulebook: rulebook,
                 Page: page,
                 School: school,
-                Levels: levels,
+                Levels: levels,  // np. "Wizard 3, Cleric 2"
                 Components: components,
                 CastingTime: castingTime,
                 Range: range,
@@ -52,7 +52,9 @@ public class ScraperService
                 SavingThrow: savingThrow,
                 SpellResistance: spellResistance,
                 SourceUrl: url,
-                Description: description
+                Description: description,
+                DMG: null,       // nowe pole, np. null jeœli brak danych
+                DMGScale: null   // nowe pole, np. null jeœli brak danych
             );
         }
         catch
@@ -67,7 +69,7 @@ public class ScraperService
         string? Rulebook,
         int? Page,
         string? School,
-        Dictionary<string, int>? Levels,
+        string? Levels,
         string? Components,
         string? CastingTime,
         string? Range,
@@ -78,7 +80,9 @@ public class ScraperService
         string? SavingThrow,
         string? SpellResistance,
         string? SourceUrl,
-        string? Description
+        string? Description,
+        string? DMG,        // dodane pole na np. "1d6"
+        string? DMGScale    // dodane pole: "1" = per caster level, "" = jednorazowe
     );
 
     // --- Parsowanie ---
@@ -131,27 +135,13 @@ public class ScraperService
         return char.ToUpperInvariant(m.Groups[1].Value[0]) + m.Groups[1].Value.Substring(1).ToLowerInvariant();
     }
 
-    static Dictionary<string, int>? ExtractLevels(string text)
+    static string? ExtractLevels(string text)
     {
         var m = Regex.Match(text, @"Level:\s*(.+?)(?:\n|\r|Components:)", RegexOptions.Singleline);
         if (!m.Success) return null;
-        var dict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var payload = m.Groups[1].Value;
-        foreach (var part in payload.Split(','))
-        {
-            var p = part.Trim();
-            if (string.IsNullOrEmpty(p)) continue;
-            var mm = Regex.Match(p, @"(.+?)\s+(\d+)$");
-            if (mm.Success)
-            {
-                var cls = mm.Groups[1].Value.Trim();
-                if (int.TryParse(mm.Groups[2].Value, out var lvl))
-                {
-                    dict[cls] = lvl;
-                }
-            }
-        }
-        return dict.Count > 0 ? dict : null;
+
+        var payload = m.Groups[1].Value.Trim();
+        return string.IsNullOrWhiteSpace(payload) ? null : payload;
     }
 
     static string? ExtractAfterLabel(string text, string label)
@@ -190,9 +180,25 @@ public class ScraperService
     public string GenerateMacro(Spell spell)
     {
         var url = NormalizeMacroUrl(spell.SourceUrl);
-        var lvl = spell.Levels?.Values.Min();
-        var components = (spell.Components ?? "").Replace(" ", ""); // "V, S" -> "V,S"
-        var schoolKey = (spell.School ?? "").Trim().ToLowerInvariant().Replace(" ", "-"); // np. "sf-divination"
+        int? lvl = null;
+        if (!string.IsNullOrWhiteSpace(spell.Levels))
+        {
+            var matches = Regex.Matches(spell.Levels, @"\d+");
+            if (matches.Count > 0)
+            {
+                var levels = matches.Select(m => int.Parse(m.Value));
+                lvl = levels.Min();
+            }
+        }
+
+        var components = string.IsNullOrWhiteSpace(spell.Components)
+        ? ""
+        : spell.Components
+            .Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Aggregate((a, b) => a + "," + b); // "V, S" -> "V,S"
+
+        var schoolKey = (spell.School ?? "").Trim().ToLowerInvariant().Replace(" ", "-");
 
         var sb = new StringBuilder();
         sb.Append("&{template:DnD35StdRoll}");
@@ -208,11 +214,29 @@ public class ScraperService
         AppendPair(sb, "Saving Throw:", BuildSavingThrowMacro(spell.SavingThrow, schoolKey, lvl));
         AppendPair(sb, "Spell Resist.", BuildSRMacro(spell.SpellResistance));
 
-        // Dodatkowe pola jak w przyk³adzie
         sb.Append(" {{ Caster level check: = [[ 1d20+@{casterlevel}+@{spellpen} ]] vs spell resistance.}}");
-        //sb.Append(" {{compcheck= Conc: [[ {1d20 + [[ @{concentration} ]] }>?{Concentration DC=15+Spell Level or 10+Damage Received|16} ]] }}");
-        //sb.Append(" {{succeedcheck=Success! She casts her spell!}}");
-        //sb.Append(" {{failcheck=She fails :( }}");
+
+
+        var dmg = spell.DMG ?? "";
+        var dmgPerLevel = spell.DMGScale == "1";
+
+        string dmgText = "";
+        if (!string.IsNullOrWhiteSpace(dmg))
+        {
+            if (dmgPerLevel)
+            {
+                // Zak³adamy, ¿e dmg to np. "1d6", chcemy [[(@{casterlevel}d6)]]
+                var diceMatch = Regex.Match(dmg, @"(\d*d\d+)");
+                var dice = diceMatch.Success ? diceMatch.Groups[1].Value : dmg;
+                dmgText = $"[[(@{{casterlevel}}{dice.Substring(dice.IndexOf('d'))})]]";
+            }
+            else
+            {
+                dmgText = "[["+dmg+"]]";
+            }
+
+            AppendPair(sb, "DMG:", dmgText);
+        }
 
         var notes = SanitizeNotes(spell.Description) + " [GMR](https://dndmacromaker-production.up.railway.app/Home)";
         AppendPair(sb, "notes", notes);

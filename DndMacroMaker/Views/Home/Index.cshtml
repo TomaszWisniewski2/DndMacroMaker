@@ -53,15 +53,132 @@
             height: 350px;
             resize: vertical;
         }
+
+        /* Kontener pola */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+            /* Label */
+            .form-group label {
+                font-weight: 600;
+                color: #f8f9fa; /* jasny tekst */
+                display: block;
+                margin-bottom: 0.4rem;
+            }
+
+        /* Select (dropdown) */
+        .form-control {
+            background-color: #2b2b2b; /* ciemne tło */
+            color: #f8f9fa; /* jasny tekst */
+            border: 1px solid #555; /* stonowane obramowanie */
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+            /* Hover i focus */
+            .form-control:hover {
+                border-color: #a97142; /* brązowo-złoty akcent */
+            }
+
+            .form-control:focus {
+                border-color: #d4af37; /* złoty akcent */
+                box-shadow: 0 0 5px rgba(212, 175, 55, 0.6);
+                outline: none;
+            }
+
+            /* Opcje dropdowna */
+            .form-control option {
+                background-color: #2b2b2b;
+                color: #f8f9fa;
+            }
     </style>
 </head>
 <body>
     <h1>Generator Makr Roll20 (D&D 3.5)</h1>
+
     <label for="url">Adres zaklęcia z DnDTools:</label>
-    <input type="text" id="url" placeholder="Wklej link, np. https://dndtools.org/spells/players-handbook-ii--80/crown-of-clarity--2940/">
-    <button id="fetchBtn">Generuj Makro</button>
+    <input type="text" id="url" placeholder="https://dndtools.org/spells/...">
+    <button id="fetchBtn">Pobierz dane</button>
+
+    <form id="spellForm" style="margin-top:20px;">
+
+        <label>Nazwa:</label>
+        <input type="text" id="name">
+
+        <label>Szkoła:</label>
+        <div class="form-group mb-3">
+            <select id="school" name="school" class="form-control">
+                <option value="">-- wybierz szkołę --</option>
+                <option value="sf-abjuration">Abjuration</option>
+                <option value="sf-conjuration">Conjuration</option>
+                <option value="sf-divination">Divination</option>
+                <option value="sf-enchantment">Enchantment</option>
+                <option value="sf-evocation">Evocation</option>
+                <option value="sf-illusion">Illusion</option>
+                <option value="sf-necromancy">Necromancy</option>
+                <option value="sf-transmutation">Transmutation</option>
+                <option value="sf-universal">Universal</option>
+            </select>
+        </div>
+
+
+        <label>Spell Level:</label>
+        <div class="form-group mb-3">
+            <select class="form-control level-value">
+                <option value="">-- poziom --</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+            </select>
+        </div>
+
+        <label>Komponenty:</label>
+        <input type="text" id="components">
+
+        <label>Casting Time:</label>
+        <input type="text" id="castingTime">
+
+        <label>Range:</label>
+        <input type="text" id="range">
+
+        <label>Target:</label>
+        <input type="text" id="target">
+
+        <label>Duration:</label>
+        <input type="text" id="duration">
+
+        <label>Saving Throw:</label>
+        <input type="text" id="savingThrow">
+
+        <label>Spell Resistance:</label>
+        <input type="text" id="spellResistance">
+
+        <label>DMG:</label>
+        <div class="form-group mb-3">
+            <input type="text" id="dmg" placeholder="np. typ kostki d6 lub stała wartość 3d6">
+            <select id="dmgScale" class="form-control">
+                <option value="1">na jeden poziom czarodzieja</option>
+                <option value="0">stała wartość</option>
+            </select>
+        </div>
+
+        <label>Opis:</label>
+        <textarea id="description"></textarea>
+
+        <button type="button" id="generateBtn">Generuj makro</button>
+    </form>
+
     <label for="result">Wygenerowane makro:</label>
-    <textarea id="result" readonly></textarea>
+<textarea id="result" readonly></textarea>
 
     <script>
         document.getElementById('fetchBtn').addEventListener('click', async () => {
@@ -72,11 +189,78 @@
             }
 
             try {
-                // tu zmień adres API na właściwy w zależności od backendu
-                const res = await fetch(`/api/scraper?url=${encodeURIComponent(url)}`);
-                if (!res.ok) {
-                    throw new Error("Błąd pobierania makra");
+                const res = await fetch(`/api/scraper/raw?url=${encodeURIComponent(url)}`);
+                if (!res.ok) throw new Error("Błąd pobierania danych");
+
+                const spell = await res.json();
+
+                // wypełnij formularz
+                document.getElementById('name').value = spell.name || "";
+
+                // szkoła
+                const schoolSelect = document.getElementById('school');
+                if (schoolSelect) {
+                    schoolSelect.value = spell.school ? "sf-" + spell.school.toLowerCase() : "";
                 }
+
+                // poziomy (pierwszy select .level-value)
+                const levelSelect = document.querySelector('.level-value');
+                if (levelSelect) {
+                    // jeśli spell.levels jest stringiem np. "Wizard 3"
+                    // wyciągamy pierwszą liczbę i ustawiamy select
+                    if (spell.levels) {
+                        const match = spell.levels.match(/\d+/);
+                        levelSelect.value = match ? match[0] : "";
+                    } else {
+                        levelSelect.value = "";
+                    }
+                }
+
+                document.getElementById('components').value = spell.components || "";
+                document.getElementById('castingTime').value = spell.castingTime || "";
+                document.getElementById('range').value = spell.range || "";
+                document.getElementById('target').value = spell.target || "";
+                document.getElementById('duration').value = spell.duration || "";
+                document.getElementById('savingThrow').value = spell.savingThrow || "";
+                document.getElementById('spellResistance').value = spell.spellResistance || "";
+                document.getElementById('description').value = spell.description || "";
+
+            } catch (err) {
+                console.error(err);
+                alert("Wystąpił błąd: " + err.message);
+            }
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            // pobierz poziom z selecta
+            const levelSelect = document.querySelector('.level-value');
+            const levelStr = levelSelect ? levelSelect.value : "";
+            const dmg = document.getElementById('dmg') ? document.getElementById('dmg').value.trim() : "";
+            const dmgScale = document.getElementById('dmgScale') ? document.getElementById('dmgScale').value : "0";
+                const spell = {
+                    name: document.getElementById('name').value,
+                    school: document.getElementById('school').value,
+                    levels: levelStr, // string
+                    components: document.getElementById('components').value,
+                    castingTime: document.getElementById('castingTime').value,
+                    range: document.getElementById('range').value,
+                    target: document.getElementById('target').value,
+                    duration: document.getElementById('duration').value,
+                    savingThrow: document.getElementById('savingThrow').value,
+                    spellResistance: document.getElementById('spellResistance').value,
+                    description: document.getElementById('description').value,
+                    dmg: dmg,
+                    dmgScale: dmgScale
+                };
+
+            try {
+                const res = await fetch(`/api/scraper/generate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(spell)
+                });
+
+                if (!res.ok) throw new Error("Błąd generowania makra");
                 document.getElementById('result').value = await res.text();
             } catch (err) {
                 console.error(err);
