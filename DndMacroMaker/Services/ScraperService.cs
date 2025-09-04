@@ -54,7 +54,8 @@ public class ScraperService
                 SourceUrl: url,
                 Description: description,
                 DMG: null,       // nowe pole, np. null jeœli brak danych
-                DMGScale: null   // nowe pole, np. null jeœli brak danych
+                DMGScale: null,   // nowe pole, np. null jeœli brak danych
+                DMGCap: null
             );
         }
         catch
@@ -82,7 +83,8 @@ public class ScraperService
         string? SourceUrl,
         string? Description,
         string? DMG,        // dodane pole na np. "1d6"
-        string? DMGScale    // dodane pole: "1" = per caster level, "" = jednorazowe
+        string? DMGScale,    // dodane pole: "1" = per caster level, "" = jednorazowe
+        string? DMGCap // np. "10" dla "max 10d6"
     );
 
     // --- Parsowanie ---
@@ -219,20 +221,37 @@ public class ScraperService
 
         var dmg = spell.DMG ?? "";
         var dmgPerLevel = spell.DMGScale == "1";
+        var dmgCap = spell.DMGCap; // np. "10"
 
         string dmgText = "";
         if (!string.IsNullOrWhiteSpace(dmg))
         {
             if (dmgPerLevel)
             {
-                // Zak³adamy, ¿e dmg to np. "1d6", chcemy [[(@{casterlevel}d6)]]
-                var diceMatch = Regex.Match(dmg, @"(\d*d\d+)");
-                var dice = diceMatch.Success ? diceMatch.Groups[1].Value : dmg;
-                dmgText = $"[[(@{{casterlevel}}{dice.Substring(dice.IndexOf('d'))})]]";
+                // np. DMG = "1d6", DMGCap = "10"
+                var diceMatch = Regex.Match(dmg, @"(\d*)d(\d+)");
+                if (diceMatch.Success)
+                {
+                    var sides = diceMatch.Groups[2].Value; // np. "6"
+                    if (!string.IsNullOrWhiteSpace(dmgCap))
+                    {
+                        // [[[[{0d0+@{casterlevel},0d0+10}kl1]]d6]]
+                        dmgText = $"[[[[{{0d0+@{{casterlevel}},0d0+{dmgCap}}}kl1]]d{sides}]]";
+                    }
+                    else
+                    {
+                        // [[(@{casterlevel}d6)]]
+                        dmgText = $"[[(@{{casterlevel}}d{sides})]]";
+                    }
+                }
+                else
+                {
+                    dmgText = "[[" + dmg + "]]";
+                }
             }
             else
             {
-                dmgText = "[["+dmg+"]]";
+                dmgText = "[[" + dmg + "]]";
             }
 
             AppendPair(sb, "DMG:", dmgText);

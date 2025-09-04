@@ -107,22 +107,22 @@
 
     <form id="spellForm" style="margin-top:20px;">
 
-        <label>Nazwa:</label>
+        <label>Name:</label>
         <input type="text" id="name">
 
-        <label>Szkoła:</label>
+        <label>School:</label>
         <div class="form-group mb-3">
             <select id="school" name="school" class="form-control">
                 <option value="">-- wybierz szkołę --</option>
-                <option value="sf-abjuration">Abjuration</option>
-                <option value="sf-conjuration">Conjuration</option>
-                <option value="sf-divination">Divination</option>
-                <option value="sf-enchantment">Enchantment</option>
-                <option value="sf-evocation">Evocation</option>
-                <option value="sf-illusion">Illusion</option>
-                <option value="sf-necromancy">Necromancy</option>
-                <option value="sf-transmutation">Transmutation</option>
-                <option value="sf-universal">Universal</option>
+                <option value="Abjuration">Abjuration</option>
+                <option value="Conjuration">Conjuration</option>
+                <option value="Divination">Divination</option>
+                <option value="Enchantment">Enchantment</option>
+                <option value="Evocation">Evocation</option>
+                <option value="Illusion">Illusion</option>
+                <option value="Necromancy">Necromancy</option>
+                <option value="Transmutation">Transmutation</option>
+                <option value="Universal">Universal</option>
             </select>
         </div>
 
@@ -144,7 +144,7 @@
             </select>
         </div>
 
-        <label>Komponenty:</label>
+        <label>Components:</label>
         <input type="text" id="components">
 
         <label>Casting Time:</label>
@@ -167,12 +167,15 @@
 
         <label>DMG:</label>
         <div class="form-group mb-3">
-            <input type="text" id="dmg" placeholder="np. typ kostki d6 lub stała wartość 3d6">
+            <input type="text" id="dmg" placeholder="np. d6 albo stała wartość np 3d6">
             <select id="dmgScale" class="form-control">
-                <option value="1">na jeden poziom czarodzieja</option>
+                <option value="1">na każdy poziom czarodzieja</option>
                 <option value="0">stała wartość</option>
             </select>
         </div>
+
+        <label>Limit obrażeń (opcjonalnie):</label>
+        <input type="number" id="dmgCap" placeholder="np. 10 dla max 10d6">
 
         <label>Opis:</label>
         <textarea id="description"></textarea>
@@ -203,7 +206,7 @@
                 // szkoła
                 const schoolSelect = document.getElementById('school');
                 if (schoolSelect) {
-                    schoolSelect.value = spell.school ? "sf-" + spell.school.toLowerCase() : "";
+                    schoolSelect.value = spell.school ? spell.school : "";
                 }
 
                 // poziomy (pierwszy select .level-value)
@@ -234,27 +237,30 @@
             }
         });
 
-        document.getElementById('generateBtn').addEventListener('click', async () => {
-            // pobierz poziom z selecta
+               document.getElementById('generateBtn').addEventListener('click', async () => {
             const levelSelect = document.querySelector('.level-value');
             const levelStr = levelSelect ? levelSelect.value : "";
+
             const dmg = document.getElementById('dmg') ? document.getElementById('dmg').value.trim() : "";
             const dmgScale = document.getElementById('dmgScale') ? document.getElementById('dmgScale').value : "0";
-                const spell = {
-                    name: document.getElementById('name').value,
-                    school: document.getElementById('school').value,
-                    levels: levelStr, // string
-                    components: document.getElementById('components').value,
-                    castingTime: document.getElementById('castingTime').value,
-                    range: document.getElementById('range').value,
-                    target: document.getElementById('target').value,
-                    duration: document.getElementById('duration').value,
-                    savingThrow: document.getElementById('savingThrow').value,
-                    spellResistance: document.getElementById('spellResistance').value,
-                    description: document.getElementById('description').value,
-                    dmg: dmg,
-                    dmgScale: dmgScale
-                };
+            const dmgCap = document.getElementById('dmgCap') ? document.getElementById('dmgCap').value.trim() : "";
+
+            const spell = {
+                name: document.getElementById('name').value,
+                school: document.getElementById('school').value,
+                levels: levelStr,
+                components: document.getElementById('components').value,
+                castingTime: document.getElementById('castingTime').value,
+                range: document.getElementById('range').value,
+                target: document.getElementById('target').value,
+                duration: document.getElementById('duration').value,
+                savingThrow: document.getElementById('savingThrow').value,
+                spellResistance: document.getElementById('spellResistance').value,
+                description: document.getElementById('description').value,
+                dmg: dmg,
+                dmgScale: dmgScale,
+                dmgCap: dmgCap   // NOWE
+            };
 
             try {
                 const res = await fetch(`/api/scraper/generate`, {
@@ -270,6 +276,7 @@
                 alert("Wystąpił błąd: " + err.message);
             }
         });
+
     </script>
 </body>
 </html>
