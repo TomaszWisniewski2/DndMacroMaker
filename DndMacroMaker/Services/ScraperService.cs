@@ -37,6 +37,7 @@ public class ScraperService
             var description = ExtractDescription(text);
 
             return new Spell(
+                Url:url ,
                 Name: name,
                 Rulebook: rulebook,
                 Page: page,
@@ -66,6 +67,7 @@ public class ScraperService
 
     // --- Spell record ---
     public record Spell(
+        string? Url,
         string? Name,
         string? Rulebook,
         int? Page,
@@ -205,7 +207,7 @@ public class ScraperService
         var sb = new StringBuilder();
         sb.Append("&{template:DnD35StdRoll}");
         AppendPair(sb, "spellflag", "true");
-        AppendPair(sb, "name", "@{character_name} casts [" + spell.Name + "](" + url + ")");
+        AppendPair(sb, "name", "@{character_name} casts [" + spell.Name + "](" + spell.Url + ")");
         AppendPair(sb, "School:", (spell.School ?? "") + " ");
         AppendPair(sb, "Level:", lvl?.ToString() ?? "");
         AppendPair(sb, "Compnts:", components);
