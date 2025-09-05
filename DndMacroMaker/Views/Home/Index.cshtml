@@ -93,6 +93,31 @@
                 background-color: #2b2b2b;
                 color: #f8f9fa;
             }
+
+        .dmg-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center; /* wyrównanie pionowe */
+        }
+
+            .dmg-row input {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .dmg-row select {
+                flex: 0 0 auto;
+                width: 60px; /* węższe selecty */
+                min-width: 40px;
+            }
+
+        /* mały kontener dla label + select */
+        .dmg-field {
+            display: flex;
+            flex-direction: column; /* label nad select */
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -165,14 +190,63 @@
         <label>Spell Resistance:</label>
         <input type="text" id="spellResistance">
 
-        <label>DMG:</label>
-        <div class="form-group mb-3">
-            <input type="text" id="dmg" placeholder="np. d6 albo stała wartość np 3d6">
-            <select id="dmgScale" class="form-control">
-                <option value="1">na każdy poziom czarodzieja</option>
-                <option value="0">stała wartość</option>
-            </select>
+        <label>Tryb obrażeń:</label>
+        <select id="dmgMode" class="form-control">
+            <option value="">-- wybierz --</option>
+            <option value="1">Stała wartość (np. 4d6+10)</option>
+            <option value="2">Kości rosną (np. d6 per level)</option>
+            <option value="3">Stała kostka + bonus rośnie (np. 1d8 +1/level)</option>
+            <option value="4">Kości i bonus rosną</option>
+        </select>
+
+        <div id="dmgFields"></div>
+
+        <!-- opcja 1 -->
+        <div id="dmg-fixed" class="dmg-section" style="display:none;">
+            <label>Obrażenia:</label>
+            <input type="text" id="dmgFixed" placeholder="np. 4d6+11">
         </div>
+
+        <!-- opcja 2 -->
+        @* <div id="dmg-scaling-dice" class="dmg-section" style="display:none;">
+            <label>Typ kostki:</label>
+            <input type="text" id="dmgDiceType" placeholder="np. d6">
+            <label>Od którego poziomu:</label>
+            <input type="number" id="dmgDiceStart" value="1">
+            <label>Co ile poziomów:</label>
+            <input type="number" id="dmgDiceStep" value="1">
+        </div>
+
+        <!-- opcja 3 -->
+        <div id="dmg-scaling-bonus" class="dmg-section" style="display:none;">
+            <label>Kostka:</label>
+            <input type="text" id="dmgStaticDice" placeholder="np. 1d8">dmgNr
+            <label>Obrażenia na poziom:</label>
+            <input type="number" id="dmgBonusNr" value="1">
+            <label>Od którego poziomu bonus:</label>
+            <input type="number" id="dmgBonusStart" value="1">
+            <label>Co ile poziomów bonus:</label>
+            <input type="number" id="dmgBonusStep" value="1">
+        </div>
+
+        <!-- opcja 4 -->
+        <div id="dmg-scaling-both" class="dmg-section" style="display:none;">
+            <label>Typ kostki:</label>
+            <input type="text" id="dmgBothDiceType" placeholder="np. d10">
+            <label>Od którego poziomu (kostki):</label>
+            <input type="number" id="dmgBothDiceStart" value="1">
+            <label>Co ile poziomów (kostki):</label>
+            <input type="number" id="dmgBothDiceStep" value="1">
+
+            <label>Liczba kostek start:</label>
+            <input type="number" id="dmgBothCountStart" value="1">
+            <label>Obrażenia na poziom:</label>
+            <input type="number" id="dmgBonusNr" value="1">
+            <label>Od którego poziomu (liczba):</label>
+            <input type="number" id="dmgBothCountLevel" value="1">
+            <label>Co ile poziomów (liczba):</label>
+            <input type="number" id="dmgBothCountStep" value="1">
+        </div> *@
 
         <label>Limit obrażeń (opcjonalnie):</label>
         <input type="number" id="dmgCap" placeholder="np. 10 dla max 10d6">
@@ -187,6 +261,70 @@
 <textarea id="result" readonly></textarea>
 
     <script>
+        const dmgModeSelect = document.getElementById("dmgMode");
+        const dmgFields = document.getElementById("dmgFields");
+
+                dmgModeSelect.addEventListener("change", () => {
+            const mode = dmgModeSelect.value;
+            let html = "";
+
+                        function generateLevelSelect(id, defaultValue = "") {
+                        let html = `<select id="${id}" class="form-control level-value">`;
+                        for (let i = 0; i <= 20; i++) {
+                            const selected = (i.toString() === defaultValue) ? " selected" : "";
+                            html += `<option value="${i}"${selected}>${i}</option>`;
+                        }
+                        html += `</select>`;
+                        return html;
+                    }
+            if (mode === "1") {
+                html = `
+                  <div class="dmg-row">
+                    <input id="dmgFormula" placeholder="np. 4d6+10">
+                  </div>`;
+            }
+            if (mode === "2") {
+                      html = `
+                    <div class="dmg-row">
+                      <input id="dmgFormula" placeholder="np. d10">
+                      <p>Od poziomu:</p> ${generateLevelSelect("dmgStart", "0")}
+                      <p>Co </p>${generateLevelSelect("dmgStep",  "1")} <p> poziom</p>
+                    </div>`;
+            }
+            if (mode === "3") {
+                html = `
+                  <div class="dmg-row">
+                    <input id="dmgFormula" placeholder="np. 1d8">
+                  </div>
+                  <div class="dmg-row">
+                    <input type="number" id="dmgNr"  placeholder="obrażenia na lv np 1">
+                    <p>Od poziomu:</p>${generateLevelSelect("dmgStart2", "0")}
+                    <p>Co </p>${generateLevelSelect("dmgStep2",  "1")} <p> poziom</p>
+                  </div>`;
+            }
+            if (mode === "4") {
+                      html = `
+                    <div class="dmg-row">
+                        <input id="dmgFormula" placeholder="np. d10">
+                        <p>Od poziomu:</p> ${generateLevelSelect("dmgStart",  "0")}
+                        <p>Co </p>${generateLevelSelect("dmgStep",  "1")} <p> poziom</p>
+                        </div>
+                        <div class="dmg-row">
+                        <input type="number" id="dmgNr"  placeholder="obrażenia na lv np 1">
+                        <p>Od poziomu:</p>${generateLevelSelect("dmgStart2",  "0")}
+                        <p>Co </p>${generateLevelSelect("dmgStep2",  "1")} <p> poziom</p>
+                    </div>`;
+            }
+
+            dmgFields.innerHTML = html;
+        });
+
+
+        //     document.getElementById('dmgType').addEventListener('change', function() {
+        //     document.querySelectorAll('.dmg-section').forEach(div => div.style.display = 'none');
+        //     const selected = this.value;
+        //     document.getElementById('dmg-' + selected).style.display = 'block';
+        // });
         document.getElementById('fetchBtn').addEventListener('click', async () => {
             const url = document.getElementById('url').value.trim();
             if (!url) {
@@ -245,23 +383,43 @@
             const dmgScale = document.getElementById('dmgScale') ? document.getElementById('dmgScale').value : "0";
             const dmgCap = document.getElementById('dmgCap') ? document.getElementById('dmgCap').value.trim() : "";
 
-            const spell = {
-                url: document.getElementById('url').value,
-                name: document.getElementById('name').value,
-                school: document.getElementById('school').value,
-                levels: levelStr,
-                components: document.getElementById('components').value,
-                castingTime: document.getElementById('castingTime').value,
-                range: document.getElementById('range').value,
-                target: document.getElementById('target').value,
-                duration: document.getElementById('duration').value,
-                savingThrow: document.getElementById('savingThrow').value,
-                spellResistance: document.getElementById('spellResistance').value,
-                description: document.getElementById('description').value,
-                dmg: dmg,
-                dmgScale: dmgScale,
-                dmgCap: dmgCap   // NOWE
-            };
+            function toNullableInt(id) {
+            const val = document.getElementById(id)?.value;
+            return val && !isNaN(val) ? parseInt(val) : null;
+            }
+
+                const spell = {
+                    url: document.getElementById('url').value,
+                    name: document.getElementById('name').value,
+                    school: document.getElementById('school').value,
+                    levels: levelStr,
+                    components: document.getElementById('components').value,
+                    castingTime: document.getElementById('castingTime').value,
+                    range: document.getElementById('range').value,
+                    target: document.getElementById('target').value,
+                    duration: document.getElementById('duration').value,
+                    savingThrow: document.getElementById('savingThrow').value,
+                    spellResistance: document.getElementById('spellResistance').value,
+                    description: document.getElementById('description').value,
+
+                    dmgMode: document.getElementById("dmgMode").value,
+                    dmgFormula: document.getElementById("dmgFormula")?.value || null,
+                    dmgStart: document.getElementById("dmgStart")?.value || null,
+                    dmgStep: document.getElementById("dmgStep")?.value || null,
+                    dmgStart2: document.getElementById("dmgStart2")?.value || null,
+                    dmgStep2: document.getElementById("dmgStep2")?.value || null,
+                    dmgCap: document.getElementById("dmgCap")?.value || null,
+                    dmgNr: document.getElementById("dmgNr")?.value || null,
+
+                    dmgStart: toNullableInt("dmgStart"),
+                    dmgStep: toNullableInt("dmgStep"),
+                    dmgStart2: toNullableInt("dmgStart2"),
+                    dmgStep2: toNullableInt("dmgStep2"),
+                    dmgCap: toNullableInt("dmgCap"),
+                    dmgNr: toNullableInt("dmgNr"),
+
+
+                };
 
             try {
                 const res = await fetch(`/api/scraper/generate`, {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -39,24 +39,29 @@ public class ScraperService
             return new Spell(
                 Url:url ,
                 Name: name,
-                Rulebook: rulebook,
-                Page: page,
+                //Rulebook: rulebook,
+                //Page: page,
                 School: school,
                 Levels: levels,  // np. "Wizard 3, Cleric 2"
                 Components: components,
                 CastingTime: castingTime,
                 Range: range,
                 Target: target,
-                Area: area,
-                Effect: effect,
+                //Area: area,
+                //Effect: effect,
                 Duration: duration,
                 SavingThrow: savingThrow,
                 SpellResistance: spellResistance,
                 SourceUrl: url,
                 Description: description,
-                DMG: null,       // nowe pole, np. null je�li brak danych
-                DMGScale: null,   // nowe pole, np. null je�li brak danych
-                DMGCap: null
+                DmgMode: null,      // domyślnie null (użytkownik wybierze w formularzu)
+                DmgFormula: null,   // np. "4d6+10", "d6", "1d8" itp.
+                DmgStart: null,     // od którego poziomu zaczyna się skalowanie
+                DmgStep: null,      // co ile poziomów skalowanie
+                DmgStart2: null,    // od którego poziomu bonus (opcja 4)
+                DmgStep2: null,      // co ile poziomów bonus (opcja 4)
+                dmgCap: null,
+                dmgNr: null
             );
         }
         catch
@@ -69,24 +74,29 @@ public class ScraperService
     public record Spell(
         string? Url,
         string? Name,
-        string? Rulebook,
-        int? Page,
+        //string? Rulebook,
+        //int? Page,
         string? School,
         string? Levels,
         string? Components,
         string? CastingTime,
         string? Range,
         string? Target,
-        string? Area,
-        string? Effect,
+        //string? Area,
+        //string? Effect,
         string? Duration,
         string? SavingThrow,
         string? SpellResistance,
         string? SourceUrl,
         string? Description,
-        string? DMG,        // dodane pole na np. "1d6"
-        string? DMGScale,    // dodane pole: "1" = per caster level, "" = jednorazowe
-        string? DMGCap // np. "10" dla "max 10d6"
+        string? DmgMode,        // 1-4 – tryb obrażeń
+        string? DmgFormula,     // np. "4d6+10" albo "d6" albo "1d8"
+        int? DmgStart,          // od którego levelu
+        int? DmgStep,           // co ile leveli
+        int? DmgStart2,         // dla bonusu (opcja 4)
+        int? DmgStep2,           // dla bonusu (opcja 4)
+        int? dmgCap,
+        int? dmgNr
     );
 
     // --- Parsowanie ---
@@ -108,7 +118,7 @@ public class ScraperService
         var m = Regex.Match(html, @"<title>\s*(.*?)\s*</title>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!m.Success) return null;
         var title = WebUtility.HtmlDecode(m.Groups[1].Value).Trim();
-        var split = Regex.Split(title, @"\s*[�-]\s*");
+        var split = Regex.Split(title, @"\s*[–-]\s*");
         if (split.Length > 0) return split[0].Trim();
         return title;
     }
@@ -221,41 +231,46 @@ public class ScraperService
         sb.Append(" {{ Caster level check: = [[ 1d20+@{casterlevel}+@{spellpen} ]] vs spell resistance.}}");
 
 
-        var dmg = spell.DMG ?? "";
-        var dmgPerLevel = spell.DMGScale == "1";
-        var dmgCap = spell.DMGCap; // np. "10"
+        //var dmg = spell.DMG ?? "";
+        //var dmgPerLevel = spell.DMGScale == "1";
+        //var dmgCap = spell.DMGCap; // np. "10"
 
-        string dmgText = "";
-        if (!string.IsNullOrWhiteSpace(dmg))
+        //string dmgText = "";
+        //if (!string.IsNullOrWhiteSpace(dmg))
+        //{
+        //    if (dmgPerLevel)
+        //    {
+        //        // np. DMG = "1d6", DMGCap = "10"
+        //        var diceMatch = Regex.Match(dmg, @"(\d*)d(\d+)");
+        //        if (diceMatch.Success)
+        //        {
+        //            var sides = diceMatch.Groups[2].Value; // np. "6"
+        //            if (!string.IsNullOrWhiteSpace(dmgCap))
+        //            {
+        //                // [[[[{0d0+@{casterlevel},0d0+10}kl1]]d6]]
+        //                dmgText = $"[[[[{{0d0+@{{casterlevel}},0d0+{dmgCap}}}kl1]]d{sides}]]";
+        //            }
+        //            else
+        //            {
+        //                // [[(@{casterlevel}d6)]]
+        //                dmgText = $"[[(@{{casterlevel}}d{sides})]]";
+        //            }
+        //        }
+        //        else
+        //        {
+        //            dmgText = "[[" + dmg + "]]";
+        //        }
+        //    }
+        //    else
+        //    {
+        //        dmgText = "[[" + dmg + "]]";
+        //    }
+
+        //    AppendPair(sb, "DMG:", dmgText);
+        //}
+        var dmgText = BuildDamageMacro(spell);
+        if (!string.IsNullOrWhiteSpace(dmgText))
         {
-            if (dmgPerLevel)
-            {
-                // np. DMG = "1d6", DMGCap = "10"
-                var diceMatch = Regex.Match(dmg, @"(\d*)d(\d+)");
-                if (diceMatch.Success)
-                {
-                    var sides = diceMatch.Groups[2].Value; // np. "6"
-                    if (!string.IsNullOrWhiteSpace(dmgCap))
-                    {
-                        // [[[[{0d0+@{casterlevel},0d0+10}kl1]]d6]]
-                        dmgText = $"[[[[{{0d0+@{{casterlevel}},0d0+{dmgCap}}}kl1]]d{sides}]]";
-                    }
-                    else
-                    {
-                        // [[(@{casterlevel}d6)]]
-                        dmgText = $"[[(@{{casterlevel}}d{sides})]]";
-                    }
-                }
-                else
-                {
-                    dmgText = "[[" + dmg + "]]";
-                }
-            }
-            else
-            {
-                dmgText = "[[" + dmg + "]]";
-            }
-
             AppendPair(sb, "DMG:", dmgText);
         }
 
@@ -264,6 +279,54 @@ public class ScraperService
 
         return sb.ToString();
     }
+
+
+    private string BuildDamageMacro(Spell spell)
+    {
+        if (string.IsNullOrWhiteSpace(spell.DmgMode))
+            return "";
+
+        switch (spell.DmgMode)
+        {
+            case "1": // stała wartość
+                return $"[[{spell.DmgFormula}]]";
+
+            case "2": // kości rosną (dX per caster level)
+                {
+                    var dice = spell.DmgFormula?.TrimStart('d') ?? "6"; // np. "d6" → "6"
+                    var start = spell.DmgStart ?? 0;
+                    var step = spell.DmgStep ?? 1;
+                    var cap = spell.dmgCap ?? 30;
+                    return $"[[[[{{0d0+floor((@{{casterlevel}}-{start})/{step}),0d0+{cap}}}kl1]]d{dice}]]";
+                }
+
+            case "3": // stała kostka + liczba rośnie
+                {
+                    var formula = spell.DmgFormula ?? "1d8";
+                    var start = spell.DmgStart2 ?? 0;
+                    var step = spell.DmgStep2 ?? 1;
+                    var cap = spell.dmgCap ?? 30;
+                    var nr = spell.dmgNr ?? 1;
+                    return $"[[{formula} + {{0d0+floor((@{{casterlevel}}*{nr}-{start})/{step}),0d0+{cap}}}kl1]]";
+                }
+
+            case "4": // kości i liczba rosną
+                {
+                    var dice = spell.DmgFormula?.TrimStart('d') ?? "10"; // np. "d10"
+                    var start1 = spell.DmgStart ?? 0;   // kości
+                    var step1 = spell.DmgStep ?? 1;
+                    var start2 = spell.DmgStart2 ?? 0;  // bonus
+                    var step2 = spell.DmgStep2 ?? 1;
+                    var cap = spell.dmgCap ?? 30;
+
+                    return $"[[[[{{0d0+floor((@{{casterlevel}}-{start1})/{step1}),0d0+{cap}}}kl1]]d{dice} + {{0d0+floor((@{{casterlevel}}-{start2})/{step2}),0d0+{cap}}}kl1]]";
+                }
+
+            default:
+                return "";
+        }
+    }
+
     static void AppendPair(StringBuilder sb, string label, string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return;
@@ -320,7 +383,7 @@ public class ScraperService
             };
             return "[[ @{casterlevel}*" + mult + " ]] " + unit;
         }
-        return duration; // w innych przypadkach zostaw orygina�
+        return duration; // w innych przypadkach zostaw oryginał
     }
 
     static string BuildSavingThrowMacro(string? savingThrow, string schoolKey, int? lvl)
@@ -331,7 +394,7 @@ public class ScraperService
         var m = Regex.Match(savingThrow, @"\\b(Fortitude|Reflex|Will)\\b", RegexOptions.IgnoreCase);
         if (!m.Success) return savingThrow;
         var save = Capitalize(m.Groups[1].Value);
-        // Przyk�ad: "Will for Negate DC [[ @{spelldc2} + @{sf-divination} ]]"
+        // Przykład: "Will for Negate DC [[ @{spelldc2} + @{sf-divination} ]]"
         return save + " for Negate DC [[ @{spelldc" + lvl + "} + @{sf-" + schoolKey + "} ]]";
     }
 
@@ -347,7 +410,7 @@ public class ScraperService
         if (string.IsNullOrWhiteSpace(desc)) return string.Empty;
         var s = desc.Replace("\r", " ").Replace("\n", " ");
         s = Regex.Replace(s, @"\s{2,}", " ");
-        s = Regex.Replace(s, @"(?<=[\.\!\?])(?=\S)", " "); // brakuj�ca spacja po kropce
+        s = Regex.Replace(s, @"(?<=[\.\!\?])(?=\S)", " "); // brakująca spacja po kropce
         s = s.Replace("{{", "{ {").Replace("}}", "} }"); // zabezpieczenie makra
         return s.Trim();
     }
